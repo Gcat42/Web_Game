@@ -1,0 +1,47 @@
+/*style related stuff for web page>*/
+body {
+    font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevent scrollbars */
+    width: 100%;
+    height: 100%;
+}
+
+canvas{
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 100%;
+    
+}
+
+#camera{
+    background-color: skyblue;
+    opacity: 0.75;
+    z-index: 0;
+}
+
+#transitionCamera{
+    background-color: transparent;
+    z-index: 5;
+}
+
+
+#roomContainer{
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    width: 100vw;
+    height: 100vh;
+}
+
+#inventoryButton{
+    background-color: blueviolet;
+    position: absolute;
+    top: 10vh;
+    left: 80vw; 
+    border-radius: 10px;
+    z-index: 10;
+}
