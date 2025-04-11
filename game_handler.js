@@ -6,8 +6,10 @@ const WINDOW_HEIGHT = window.innerHeight;
 const GROUND_HEIGHT = 70;
 const LEFT_ROOM_SWITCH = 40;
 const RIGHT_ROOM_SWITCH = WINDOW_WIDTH - LEFT_ROOM_SWITCH;
-const PLAYER_WIDTH = 64;
-const PLAYER_HEIGHT = 64;
+const PLAYER_WIDTH = 64 * 1.5;
+const PLAYER_HEIGHT = 64 * 1.5;
+const DIST_X_CX = PLAYER_WIDTH * 0.25;
+const DIST_Y_CY = PLAYER_HEIGHT * 0.12;
 //caching sprites
 let pRunFrames = [];
 for(let i = 0; i < 7; i++){
@@ -26,9 +28,8 @@ let camera = new Array(2);
 let cameraWidth = WINDOW_WIDTH;
 let cameraHeight = WINDOW_HEIGHT;
 let context = new Array(2); //?
-
 let gameFrameNum = 0;
-
+let music = new Audio("./assets/music/8bChillReg.mp3");
 //actual room info
 let roomState = 0;
 let roomTransition = {
@@ -51,11 +52,14 @@ let playerY = cameraHeight - GROUND_HEIGHT - 80;
 let player = {
     x : playerX,
     y : playerY,
-    width : PLAYER_WIDTH * 1.75,
-    height : PLAYER_HEIGHT * 1.75,
-    // colBox : {
-    //     x : 
-    // },
+    width : PLAYER_WIDTH,
+    height : PLAYER_HEIGHT,
+    colBox : {
+        x : playerX + DIST_X_CX,
+        y : playerY + DIST_Y_CY,
+        width : PLAYER_WIDTH*0.5,
+        height : PLAYER_HEIGHT *0.82
+    },
     state : 0,
     img : new Image(),
     frame : 0,
@@ -78,25 +82,20 @@ window.onload = function(){
     for(let i = 0; i < 11; i++){
 
         let px = i * WINDOW_WIDTH / 10;
-        let py = cameraHeight - GROUND_HEIGHT;
+        let py = cameraHeight - GROUND_HEIGHT + 30;
         // console.log(px + " " + py);
         if(i < 10)
-            objList.push(new Platform("floor"+i, "grass.png", px, py, WINDOW_WIDTH/10, GROUND_HEIGHT));
+            objList.push(new Platform("floor"+i, "grass.png", px, py, WINDOW_WIDTH/10, GROUND_HEIGHT - 30));
         else
             objList.push(new Platform("platform", "grass.png", 150, WINDOW_HEIGHT - GROUND_HEIGHT - 150, 100, 50));
     }
     loadRoom();
     // context[0].fillRect(player.x, player.y, player.width, player.height);
     detPlayerImg();
-    player.img.onload = drawPlayer;
-    //loading images
-    /*
-    playerImg = new Image();
-    playerImg.src = "./src/assest/image.png";
-    playerImg.onload = function() {
-        context.drawImage(playerImg, player.x, player.y, player.width, player.height);
-    }
-    */
+    player.img.onload = function(){
+        drawPlayer();
+        
+    };
    requestAnimationFrame(update);
    document.addEventListener("keydown", updateKeysDown);
    document.addEventListener("keyup", updateKeysUp);
@@ -104,13 +103,12 @@ window.onload = function(){
 
 function update(){ //used for updating frames
     requestAnimationFrame(update);
-    // console.log("BUDDY: " + roomTransition.state);
     if(!roomTransition.state){
-        //context[0].clearRect(0,0, cameraWidth, cameraHeight); //clears the "player" for right now
-        // console.log("BRUH: " + isFalling);
         loadRoom();
         player.x += xVel;
+        player.colBox.x += xVel;
         player.y += yVel;
+        player.colBox.y += yVel;
         for(let i = 0 ; i < objList.length; i++)
             detectCollision(objList[i]);
         // isFalling = (player.y < cameraHeight - GROUND_HEIGHT)? 1 : 0; //if not touching ground
@@ -157,8 +155,8 @@ function update(){ //used for updating frames
 //PLAYER MOVEMENT FUNCTIONS
 function updatePlayerState(){
     let oldPlayerState = player.state;
-    if(!yVel){
-        player.state = xVel? 1: 0; //if xVel = 0, then player state 0, else make it 1
+    if(!isFalling){
+        player.state = (keys["left"] || keys["right"])? 1 : 0;
     } 
     else
         player.state = 0;
@@ -238,8 +236,8 @@ function updateKeysUp(e){ //tracks when movement key is lifted
 
 //ROOM DETERMINATION AND ROOM-BASED DRAWING
 function detEndOfRoom(){
-    let hitLeftBorder = player.x < LEFT_ROOM_SWITCH;
-    let hitRightBorder = player.x + player.width > RIGHT_ROOM_SWITCH;
+    let hitLeftBorder = player.colBox.x < LEFT_ROOM_SWITCH;
+    let hitRightBorder = player.colBox.x + player.colBox.width > RIGHT_ROOM_SWITCH;
     let oldXVel = xVel;
     roomTransition.state = 1;
     xVel = 0;
@@ -278,9 +276,9 @@ function updatePlayerFrame(){
     let f = player.relGameFrame;
     switch(player.state){
         case 0:
-            if(f < 100)
+            if(f < 114)
                 player.frame = 0;
-            else if (f < 115)
+            else if (f < 117)
                 player.frame = 1;
             else
                 player.frame = 2;
@@ -289,6 +287,7 @@ function updatePlayerFrame(){
             player.frame = Math.floor(f / 6);
             break;
     }
+    console.log("f: " + player.state);
 }
 
 function detPlayerImg(){
@@ -302,18 +301,6 @@ function detPlayerImg(){
 }
 
 function drawPlayer(){
-    // switch(roomState){
-    //     case 0:
-    //         context[0].fillStyle = 'rgb(255, 255, 255)';
-    //         break;
-    //     case 1:
-    //         context[0].fillStyle = 'rgb(126, 126, 126)';
-    //         break;
-    //     case 2:
-    //         context[0].fillStyle = 'rgb(0, 93, 3)';
-    //         break;
-    // }
-    // console.log("Draw Player called!\n");
     let ctx = context[0];
     let flip = xVel < 0;
     ctx.save();
@@ -326,40 +313,43 @@ function drawPlayer(){
         ctx.drawImage(player.img, 0, 0, player.width, player.height);
     }
     ctx.restore();
-    // context[0].drawImage(player.img, player.x, player.y, player.width, player.height);
-    // context[0].fillStyle = 'rgba(255,255,255,0.5)';
-    // context[0].fillRect(player.x, player.y, player.width, player.height);
-    // context[0].fillRect(player.x, player.y, player.width, player.height);
+    // ctx.fillStyle = 'rgba(100,100,100,0.7)';
+    // ctx.fillRect(player.colBox.x, player.colBox.y, player.colBox.width, player.colBox.height); (col box)
+    // ctx.fillStyle = 'rgba(255,0,140,0.1)';
+    // ctx.fillRect(player.x, player.y, player.width, player.height); //for debugging purposes (img box)
 }
 
 //COLLISION CODE
 function detectCollision(obj){
-    let hIntersect = intersect(player.x, player.x + player.width, obj.colBox.x, obj.colBox.x + obj.colBox.width);
-    let vIntersect = intersect(player.y, player.y + player.height, obj.colBox.y, obj.colBox.y + obj.colBox.height);
+    let hIntersect = intersect(player.colBox.x, player.colBox.x + player.colBox.width, obj.colBox.x, obj.colBox.x + obj.colBox.width);
+    let vIntersect = intersect(player.colBox.y, player.colBox.y + player.colBox.height, obj.colBox.y, obj.colBox.y + obj.colBox.height);
     if(hIntersect != 0 && vIntersect != 0 && obj.solid){
-        isFalling = Math.abs(hIntersect) <= Math.abs(vIntersect); //if the player is colliding horizontally less than vertically, it is like hitting a wall, thus should fall
-        if(isFalling){
-            if(player.x < obj.colBox.x){//if player on left side of object
+        if(Math.abs(hIntersect) <= Math.abs(vIntersect)){
+            if(player.colBox.x < obj.colBox.x){//if player on left side of object
                 console.log("Colliding left");
-                xVel = 0;
-                player.x = obj.colBox.x - player.width - 1;//gives slight buffer
+                // xVel = 0;
+                player.colBox.x = obj.colBox.x - player.colBox.width - 1;//gives slight buffer
+                player.x = player.colBox.x -  DIST_X_CX;
             }
-            if(player.x + player.width > obj.colBox.x + obj.colBox.width){
+            if(player.colBox.x + player.colBox.width > obj.colBox.x + obj.colBox.width){
                 console.log("Colliding right");
-                xVel = 0;
-                player.x = obj.colBox.x + obj.colBox.width - 1;
+                // xVel = 0;
+                player.colBox.x = obj.colBox.x + obj.colBox.width - 1;
+                player.x = player.colBox.x - DIST_X_CX;
             }
         }
-        else if(player.y < obj.colBox.y){//on top of colBox
+        else if(player.colBox.y < obj.colBox.y){//on top of colBox
             console.log("Colliding top");
             // yVel = 0;
-            player.y = obj.colBox.y - player.height - 1;
+            player.colBox.y = obj.colBox.y - player.colBox.height - 1;
+            player.y = player.colBox.y - DIST_Y_CY;
             isFalling = 0;
         }
         else{ //on bottom of colBox (hit head)
             console.log("Colliding bottom");
             yVel = yVel > 0? yVel: 0;
-            player.y = obj.colBox.y + obj.colBox.height + 1;
+            player.colBox.y = obj.colBox.y + obj.colBox.height + 1;
+            player.y = player.colBox.y - DIST_Y_CY;
             isFalling = 1;//need to set fallicolBoxng physics stuff
         }
     }
@@ -399,4 +389,3 @@ function updateGameFrame(){
     else
         player.relGameFrame = (++player.relGameFrame) % 120;
 }
-
